@@ -113,9 +113,9 @@ artists_4 <- c("Coldplay", "Rihanna", "Lil Wayne", "P!nk")
 artists_5 <- c("Justin Timberlake", "Chris Brown", "Kelly Clarkson", "Fergie")
 
 
-# Data_05To15 <- data.frame()
-for (m in 1:3) {
-  Data_05To15 <- rbind(Data_05To15, get_me_data(artists_4[m], 2006, 2015))
+Data_05To15 <- data.frame()
+for (m in 1:4) {
+  Data_05To15 <- rbind(Data_05To15, get_me_data(artists_1[m], 2006, 2015))
 }
 # Data_05To15 <- rbind(Data_05To15, get_me_data("Kelly Clarkson", 2006, 2015))
 # Data_05To15 <- Data_05To15[!remove_vector, ]
