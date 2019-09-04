@@ -103,8 +103,8 @@ add_chords_positions <- function(data) {
 # Perfect_chords <- search_chords("Perfect", "Ed Sheeran")
 # Other_chords <- search_chords("Skin", "Rag'n'Bone Man")
 # diff_chords <- search_chords("Bitter End", "Rag'n'Bone Man")
-test_JM <- get_me_data("Jason Mraz")
-JM_fun_test <- add_chords_positions(test_JM)
+# test_JM <- get_me_data("Jason Mraz")
+# JM_fun_test <- add_chords_positions(test_JM)
 
 artists_1 <- c("Sam Smith", "Vance Joy", "Sia", "Aloe Blacc")
 artists_2 <- c("Ed Sheeran", "Katy Perry",  "Adele", "Lana Del Rey")
@@ -117,31 +117,31 @@ artists_5 <- c("Justin Timberlake", "Chris Brown", "Kelly Clarkson", "Fergie")
 for (m in 1:3) {
   Data_05To15 <- rbind(Data_05To15, get_me_data(artists_4[m], 2006, 2015))
 }
-Data_05To15 <- rbind(Data_05To15, get_me_data("Kelly Clarkson", 2006, 2015))
-Data_05To15 <- Data_05To15[!remove_vector, ]
-remove_vector <- Data_05To15$artist_name == "Josh Groban"
-sum(is.na(Data_05To15$chords))
+# Data_05To15 <- rbind(Data_05To15, get_me_data("Kelly Clarkson", 2006, 2015))
+# Data_05To15 <- Data_05To15[!remove_vector, ]
+# remove_vector <- Data_05To15$artist_name == "Josh Groban"
+# sum(is.na(Data_05To15$chords))
 ```
 
 ```{r}
 ###############_____PIASKOWNICA_____##############################
-grepl("Rag'n'Bone Man", songs[12, 'authors'])
-
-Perfect <- get_track_audio_analysis(topki_tracks_id[1, "track.id"])
-Perfect_f <- get_track_audio_features(topki_tracks_id[2, "track.id"])
-Know. <- get_album("7dwIWyB2jdJgL3P2JEgRKm")
-Know.data <- get_album_data("Jason Mraz", "YES!")
-K_tracks <- get_album_tracks("7dwIWyB2jdJgL3P2JEgRKm")
-JM <- get_artist("4phGZZrJZRo4ElhRtViYdl")
-JM_f <- get_artist_audio_features("Jason Mraz")
-JM_albums <- get_artist_albums("4phGZZrJZRo4ElhRtViYdl")
-
-avlb <- !is.na(test_JM$chords)
-chordlist <- test_JM$chords[avlb]
-chordDf <- t(as.data.frame(chordlist))
-table(chordDf)
-ES <- get_artist_audio_features("Adele")
-ES_2 <- ES %>% filter(between(album_release_year, 2006, 2015))
+# grepl("Rag'n'Bone Man", songs[12, 'authors'])
+# 
+# Perfect <- get_track_audio_analysis(topki_tracks_id[1, "track.id"])
+# Perfect_f <- get_track_audio_features(topki_tracks_id[2, "track.id"])
+# Know. <- get_album("7dwIWyB2jdJgL3P2JEgRKm")
+# Know.data <- get_album_data("Jason Mraz", "YES!")
+# K_tracks <- get_album_tracks("7dwIWyB2jdJgL3P2JEgRKm")
+# JM <- get_artist("4phGZZrJZRo4ElhRtViYdl")
+# JM_f <- get_artist_audio_features("Jason Mraz")
+# JM_albums <- get_artist_albums("4phGZZrJZRo4ElhRtViYdl")
+# 
+# avlb <- !is.na(test_JM$chords)
+# chordlist <- test_JM$chords[avlb]
+# chordDf <- t(as.data.frame(chordlist))
+# table(chordDf)
+# ES <- get_artist_audio_features("Adele")
+# ES_2 <- ES %>% filter(between(album_release_year, 2006, 2015))
 ```
 
 
