@@ -11,17 +11,18 @@ library(dplyr)
 library(httr)
 library(jsonlite)
 library(xml2)
-```
 
-```{r}
 Sys.setenv(SPOTIFY_CLIENT_ID = 'eeec0cd1dc4b4d40b22ebc424837390b')
 Sys.setenv(SPOTIFY_CLIENT_SECRET = '918a941879ba4a539d0de507b7e77764')
 
 access_token <- get_spotify_access_token()
+```
 
+```{r}
 chord_database <- data.frame(chord.name = c("C", "D", "E", "F", "G", "A", "B"),
                      chord.position = c(1, 3, 5, 6, 8, 10, 12))
 
+# Funkcja zwraca listę zawierającą listy akordów piosenek odpowiadającm 
 search_chords <- function(title, author) {
   headers <- c(`Guitarparty-Api-Key` = "8b029c4b81a67c490ec89a1a50e7ba6bf720e909")
   res <- httr::GET(url = "http://api.guitarparty.com/v2/songs/", query = list(query = title), add_headers(headers))
@@ -51,6 +52,8 @@ search_chords <- function(title, author) {
   }
 }
 
+# funkcja pobiera cechy audio wszystkich piosenek z wszystkich albumów danego artysty
+# oraz akordy dla tych piosenek i łączy te dane
 get_me_data <- function(artist, year1, year2){
   artist_tracks <- get_artist_audio_features(artist)
   base_data <- artist_tracks %>% filter(between(album_release_year, year1, year2)) %>% select(artist_id, artist_name, album_id,                         album_name, album_type, album_release_date, album_release_year, album_release_date_precision, track_id,                                  track_name, disc_number, track_number, available_markets, is_local,   duration_ms, danceability, energy,                                 loudness, speechiness,  acousticness, instrumentalness, liveness, valence, tempo, key, mode, key_name, mode_name,                        key_mode)
@@ -65,6 +68,42 @@ get_me_data <- function(artist, year1, year2){
   return(final_data)
 }
 
+add_chord_progression <- function(x){
+  x_final <- x %>% mutate(chord.progression = NA, chord.mode = NA)
+  x_final$chord.progression[1] <- 0
+  for (m in 2:nrow(x_final)) {
+    if (is.na(x_final$chord.pos[m])) {
+      x_final$chord.progression[m] <- "pause"
+      next()
+    }else {
+      if (x_final$chord.pos[1] <= x_final$chord.pos[m]) {
+        x_final$chord.progression[m] <- x_final$chord.pos[m] - x_final$chord.pos[1]
+        next()
+      }else if (x_final$chord.pos[1] >x_final$chord.pos[m]) {
+        x_final$chord.progression[m] <- 12 - x_final$chord.pos[1] + x_final$chord.pos[m]
+        next()
+      }
+    }
+  }
+  for (m in 1:nrow(x_final)) {
+    if (is.na(x_final$chord.pos[m])) {
+      x_final$chord.progression[m] <- "pause"
+      next()
+    }else {
+      if (grepl("m", x_final$chord.name[m]) && !grepl("maj", x_final$chord.name[m])) {
+        x_final$chord.mode[m] <- 0
+        next()
+      }else {
+        x_final$chord.mode[m] <- 1
+        next()
+      }
+    }
+  }
+  
+  return(x_final)
+}
+
+# funkcja na dodaje do każdej piosenki tabelkę z akordami i ich pozycjami na pięciolinii
 add_chords_positions <- function(data) {
   data_final <- data %>% mutate(chords_positions = NA)
   for (k in 1:nrow(data_final)) {
@@ -73,7 +112,7 @@ add_chords_positions <- function(data) {
       colnames(chords_df) <- "chord.name"
       chords_df <- as.data.frame(chords_df) %>% mutate(chord.pos = NA)
       for (l in 1:length(data_final$chords[k][[1]])) {
-        if (grepl("#", data_final$chords[k][[1]][[l]])) {
+        if (substr(data_final$chords[k][[1]][[l]], 2, 2) == "#") {
           chords_df[l, "chord.pos"] <- chord_database %>% filter(chord.name == substr(data_final$chords[k][[1]][[l]], 1, 1)) %>%                                         select(chord.position) +1
           next()
         }else if (grepl("b", data_final$chords[k][[1]][[l]])) {
@@ -87,6 +126,8 @@ add_chords_positions <- function(data) {
           next()
         }
       }
+      chords_df <- add_chord_progression(chords_df)
+      chords_df <- chords_df[,-2]
       data_final[k, "chords_positions"] <- list(list(chords_df))
       next()
     }else {
@@ -96,31 +137,62 @@ add_chords_positions <- function(data) {
   }
   return(data_final)
 }
+
+remove_repetitive_albums <- function(your_data){
+  remove_ids <- vector(mode = "character")
+  l <- length(your_data$available_markets[[1]])
+  change_pos <- 1
+  for(n in 1:(nrow(your_data)-1)) {
+    if (your_data$album_name[n] == your_data$album_name[n+1]) {
+      if (your_data$album_id[n] != your_data$album_id[n+1]) {
+        if (l >= length(your_data$available_markets[[n+1]])) {
+          remove_ids <- append(remove_ids, your_data$album_id[n+1])
+          next()
+        }else {
+          remove_ids <- append(remove_ids, your_data$album_id[change_pos])
+          change_pos <- n+1
+          l <- length(your_data$available_markets[[change_pos]])
+          next()
+        }
+      }else{
+        next()
+      }
+    }else {
+      change_pos <- n+1
+      l <- length(your_data$available_markets[[change_pos]])
+      next()
+    }
+  }
+  your_data_final <- your_data[!your_data$album_id %in% remove_ids,]
+  row.names(your_data_final) <- 1:nrow(your_data_final)
+  return(your_data_final)
+}
 ```
 
 ```{r}
-# Human_chords <- search_chords("Human", "Rag'n'Bone Man")
-# Perfect_chords <- search_chords("Perfect", "Ed Sheeran")
-# Other_chords <- search_chords("Skin", "Rag'n'Bone Man")
-# diff_chords <- search_chords("Bitter End", "Rag'n'Bone Man")
-# test_JM <- get_me_data("Jason Mraz")
-# JM_fun_test <- add_chords_positions(test_JM)
+# artists_1 <- c("Sam Smith", "Vance Joy", "Sia", "Aloe Blacc")
+# artists_2 <- c("Ed Sheeran", "Katy Perry",  "Adele", "Lana Del Rey")
+# artists_3 <- c("Bruno Mars", "Kelly Clarkson", "Alicia Keys", "Linkin Park")
+# artists_4 <- c("Coldplay", "Rihanna", "Lil Wayne", "P!nk")
+# artists_5 <- c("Justin Timberlake", "Chris Brown", "Fergie", "Christina Aguilera")
+# Data_05To15 <- data.frame()
+# for (m in 1:4) {
+#   Data_05To15 <- rbind(Data_05To15, get_me_data(artists_5[m], 2006, 2015))
+# }
+# Data_05To15 <- rbind(Data_05To15, get_me_data("Christina Aguilera", 2006, 2015))
 
-artists_1 <- c("Sam Smith", "Vance Joy", "Sia", "Aloe Blacc")
-artists_2 <- c("Ed Sheeran", "Katy Perry",  "Adele", "Lana Del Rey")
-artists_3 <- c("Bruno Mars", "Kelly Clarkson", "Alicia Keys", "Linkin Park")
-artists_4 <- c("Coldplay", "Rihanna", "Lil Wayne", "P!nk")
-artists_5 <- c("Justin Timberlake", "Chris Brown", "Kelly Clarkson", "Fergie")
+tracks <- readRDS(file = "Lic_dane")
+tracks_imp <- remove_repetitive_albums(tracks)
 
+albums_to_remove <- c("A Head Full of Dreams Tour Edition", "A Thousand Suns Live Around the World", "Dream Your Life Away (Commentary)", "Funhouse Deluxe Version", "FutureSex/LoveSounds Deluxe Edition", "Ghost Stories Live 2014", "Good Girl Gone Bad: Reloaded", "Good Girl Gone Bad: The Remixes", "Katy Perry - Teenage Dream: The Complete Confection","Live at the Bedford", "Live from Sydney", "LIVING THINGS: Acapellas and Instrumentals", "Meteora Live Around the World", "Minutes to Midnight Live Around the World", "Nissan Live Sets At Yahoo! Music", "Rated R: Remixed", "Spotify Sessions", "Talk That Talk (Edited)", "Talk That Talk (Explicit)", "Teenage Dream: The Complete Confection", "The Dutchess Deluxe", "The Hunting Party: Acapellas + Instrumentals", "Ultraviolence - Audio Commentary")
 
-Data_05To15 <- data.frame()
-for (m in 1:4) {
-  Data_05To15 <- rbind(Data_05To15, get_me_data(artists_1[m], 2006, 2015))
-}
-# Data_05To15 <- rbind(Data_05To15, get_me_data("Kelly Clarkson", 2006, 2015))
-# Data_05To15 <- Data_05To15[!remove_vector, ]
-# remove_vector <- Data_05To15$artist_name == "Josh Groban"
-# sum(is.na(Data_05To15$chords))
+tracks_final <- tracks_imp[!(tracks_imp$album_name %in% albums_to_remove),]
+
+data_chords <- tracks_final %>% filter(!is.na(chords))
+
+# Ręczne obsłużenie wyjątku(jednym z akordów był "(f#m)")
+data_chords$chords[[38]][88] <- "F#m"
+data_chords <- add_chords_positions(data_chords)
 ```
 
 ```{r}
@@ -142,6 +214,11 @@ for (m in 1:4) {
 # table(chordDf)
 # ES <- get_artist_audio_features("Adele")
 # ES_2 <- ES %>% filter(between(album_release_year, 2006, 2015))
+#
+# Data_06To16_impr %>% distinct(album_id, album_name) %>% count(album_name)
+# Data_05To15 %>% distinct(album_id, album_name) %>% count(album_name)
+# saveRDS(Data_05To15, file = "Lic_dane")
+table(unlist(data_chords$chords))
 ```
 
 
