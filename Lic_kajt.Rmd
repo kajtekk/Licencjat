@@ -187,38 +187,45 @@ tracks_imp <- remove_repetitive_albums(tracks)
 albums_to_remove <- c("A Head Full of Dreams Tour Edition", "A Thousand Suns Live Around the World", "Dream Your Life Away (Commentary)", "Funhouse Deluxe Version", "FutureSex/LoveSounds Deluxe Edition", "Ghost Stories Live 2014", "Good Girl Gone Bad: Reloaded", "Good Girl Gone Bad: The Remixes", "Katy Perry - Teenage Dream: The Complete Confection","Live at the Bedford", "Live from Sydney", "LIVING THINGS: Acapellas and Instrumentals", "Meteora Live Around the World", "Minutes to Midnight Live Around the World", "Nissan Live Sets At Yahoo! Music", "Rated R: Remixed", "Spotify Sessions", "Talk That Talk (Edited)", "Talk That Talk (Explicit)", "Teenage Dream: The Complete Confection", "The Dutchess Deluxe", "The Hunting Party: Acapellas + Instrumentals", "Ultraviolence - Audio Commentary")
 
 tracks_final <- tracks_imp[!(tracks_imp$album_name %in% albums_to_remove),]
-
+row.names(tracks_final) <- 1:nrow(tracks_final)
 data_chords <- tracks_final %>% filter(!is.na(chords))
 
 # Ręczne obsłużenie wyjątku(jednym z akordów był "(f#m)")
 data_chords$chords[[38]][88] <- "F#m"
 data_chords <- add_chords_positions(data_chords)
+tracks_lyrics <- add_lyrics(tracks_final)
 ```
 
 ```{r}
 ###############_____PIASKOWNICA_____##############################
 # grepl("Rag'n'Bone Man", songs[12, 'authors'])
 # 
-# Perfect <- get_track_audio_analysis(topki_tracks_id[1, "track.id"])
-# Perfect_f <- get_track_audio_features(topki_tracks_id[2, "track.id"])
 # Know. <- get_album("7dwIWyB2jdJgL3P2JEgRKm")
 # Know.data <- get_album_data("Jason Mraz", "YES!")
 # K_tracks <- get_album_tracks("7dwIWyB2jdJgL3P2JEgRKm")
 # JM <- get_artist("4phGZZrJZRo4ElhRtViYdl")
 # JM_f <- get_artist_audio_features("Jason Mraz")
 # JM_albums <- get_artist_albums("4phGZZrJZRo4ElhRtViYdl")
-# 
-# avlb <- !is.na(test_JM$chords)
-# chordlist <- test_JM$chords[avlb]
-# chordDf <- t(as.data.frame(chordlist))
-# table(chordDf)
-# ES <- get_artist_audio_features("Adele")
-# ES_2 <- ES %>% filter(between(album_release_year, 2006, 2015))
-#
-# Data_06To16_impr %>% distinct(album_id, album_name) %>% count(album_name)
-# Data_05To15 %>% distinct(album_id, album_name) %>% count(album_name)
-# saveRDS(Data_05To15, file = "Lic_dane")
+# some <- get_track_audio_features("33PdpAvnOMhA5HooKuFgbo")
+# tracks %>% distinct(album_id, album_name) %>% count(album_name)
+saveRDS(tracks, file = "Lic_dane")
 table(unlist(data_chords$chords))
+get_alb_dt_imp <- function(artist, album) {
+  tryCatch(get_album_data(artist, album), error = function(e) {return(NA)}) 
+}
+add_lyrics <- function(x) {
+  artist_album <- x %>% distinct(artist_name, album_name, album_id)
+  every_lyrics <- data.frame(lyrics = NULL)
+  for(i in 1:nrow(artist_album)) {
+    data_lyrics <- get_album_data(artist_album$artist_name[i], artist_album$album_name[i])
+    album_lyrics <- data_lyrics %>% filter(album_id == artist_album$album_id[i]) %>% select(lyrics)
+    every_lyrics <- rbind(every_lyrics, album_lyrics)
+  }
+  x <- cbind(x, every_lyrics)
+  return(x)
+}
+tracks_final %>% distinct(artist_name, album_name, album_id)
+get_album_data("Sia", "The Girl You Lost", )
 ```
 
 
