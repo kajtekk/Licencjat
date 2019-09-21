@@ -18,6 +18,7 @@ library(wordcloud)
 library(udpipe)
 library(sna)
 library(plotly)
+library(moments)
 
 Sys.setenv(SPOTIFY_CLIENT_ID = 'eeec0cd1dc4b4d40b22ebc424837390b')
 Sys.setenv(SPOTIFY_CLIENT_SECRET = '918a941879ba4a539d0de507b7e77764')
@@ -344,7 +345,7 @@ get_speech_part <- function(dane, speech_part) {
 # tracks <- data.frame()
 # for (m in 1:4) {
 #   tracks <- rbind(tracks, get_me_data(artists_1[m], 2006, 2015)) }
-# Data_05To15 <- rbind(Data_05To15, get_me_data("Christina Aguilera", 2006, 2015))
+# tracks <- rbind(tracks, get_me_data("Christina Aguilera", 2006, 2015))
 
 tracks <- readRDS(file = "Lic_dane")
 tracks_imp <- remove_repetitive_albums(tracks)
@@ -361,7 +362,10 @@ Live <- grepl("Live", tracks_final$track_name)
 tracks_final <- tracks_final[!Live, ]
 remastered <- grepl("Remastered", tracks_final$track_name)
 tracks_final <- tracks_final[!remastered, ]
+comments <- grepl("Commentary", tracks_final$track_name)
+tracks_final <- tracks_final[!comments, ]
 row.names(tracks_final) <- 1:nrow(tracks_final)
+
 
 # Ręczne obsłużenie wyjątku(jednym z akordów był "(f#m)")
 tracks_final$chords[[323]][88] <- "F#m"
@@ -384,12 +388,15 @@ song_freq <- ggplot(bar_data,aes(x= reorder(artist_name,n), n, fill = artist_nam
 song_freq
 
 full_data$loudness <- -full_clear$loudness
-opisowe <- full_data %>% summarise(srednia= mean(instrumentalness), mediana = median(instrumentalness),
-                                   var = var(instrumentalness), odchylenie_st = sd(instrumentalness),
-                                   min = min(instrumentalness), max = max(instrumentalness),
-                                   Q1 = quantile(instrumentalness, 0.25), Q3 = quantile(instrumentalness, 0.75))
+descriptive_stats <- function(variable){
+  opisowe <-  full_data %>% summarise(srednia= mean(variable), mediana = median(variable),
+                                   var = var(variable), odchylenie_st = sd(variable),
+                                   min = min(variable), max = max(variable),
+                                   Q1 = quantile(variable, 0.25), Q3 = quantile(variable, 0.75),
+                                   skosnosc = skewness(variable), kurtuoza = kurtosis(variable))
+  return(opisowe)
+}
 
-opisowev2 <- full_data %>% summarise(skosnosc = skewness(instrumentalness), kurtuoza = kurtosis(instrumentalness))
 
 ks.test(duration_s_impr$duration_s_impr)
 shapiro.test(duration_s_impr$duration_s_impr)
@@ -422,11 +429,20 @@ plot(ecdf(full_data$instrumentalness), main ="dytrybuanta intstrumentalness", xl
 ggplot(full_data) + geom_boxplot(aes(artist_name, speechiness), fill = "orange") + coord_flip() + labs(title = "Boxplot udziału mowy w piosenkach z podziałem na artystów") +  xlab("Artysta") + ylab("Udział mowy")
 
 
-hist_data <- full_data %>% mutate(duration_ms = duration_ms/1000)
-hist_gathered <- gather(full_data[,15:24], var, value)
+hist_gathered <- full_data %>%
+  mutate(duration=duration_ms/60000) %>%
+  select(artist_name, duration, danceability:valence) %>%
+  tidyr::gather(feature, value, -artist_name)
 
-max()
-ggplot(hist_gathered, aes(value, fill = var)) + geom_histogram(bins = 50)
+ggplot(hist_gathered, aes(x=value)) + 
+  geom_histogram() + 
+  facet_wrap(~feature, scales = "free") +
+  xlab("Wartość cechy") + 
+  ylab("Liczebność") +
+  theme_light() +
+  ggsave("03_histogramy.png", width = 6, height = 4)
+
+descriptive_stats(full_data$speechiness)
 ```
 
 ```{r}
@@ -451,9 +467,15 @@ total_count <- most_used_progs %>% count(grupy) %>% arrange(desc(n))
 ggplot(head(total_count, n = 15), aes(x = reorder(grupy, n), y = n, fill = grupy)) + geom_col(show.legend = F) + coord_flip() + 
   labs(title="Liczba piosenek wykorzystujących daną progresję") + xlab("Progresje") + ylab("liczba piosenek")
 
-dists_chord <- get_dists_chords(full_chords)
+dists_chord <- get_dists_chords(full_chords, "cosine")
 plot.sociomatrix(dists_chord,drawlab = F)
-
+max(song_dist)
+dists_v <- vector(mode = "double")
+for (i in 1:50) {
+  for (j in (i+1):51) {
+    dists_v <- append(dists_v, dists_chord[i, j])
+  }
+}
 
 ```
 ```{r}
@@ -498,7 +520,7 @@ all_words <- get_all_words(only_lyrics)
 all_word_artist <- cbind(all_words, lyrics_complete$artist_name, lyrics_complete$album_release_year)
 names(all_word_artist) <- c("lemma", "artist", "year")
 words_1 <- all_word_artist %>% arrange(year)
-song_dist <- get_dists(words_1$lemma)
+song_dist <- get_dists_lyrics(words_1$lemma, "cosine")
 
 plot_ly(
   x = words_1$artist, y = words_1$artist,
@@ -523,6 +545,6 @@ plot_ly(
 # saveRDS(full_data, file = "Lic_dane_pelne")
 # table(unlist(data_chords$chords))
 
-
+full_data %>% distinct(artist_name, track_name)
 
 ```
