@@ -238,6 +238,7 @@ add_lyrics <- function(x) {
   x <- cbind(x, every_lyrics$lyrics)
   return(x)
 }
+
 take_highest_count <- function(x) {
   x_prep <- paste0(x,collapse =  " ")
   gram4and3 <- ngram_asweka(str = x_prep, min = 3, max = 8)
@@ -365,7 +366,7 @@ row.names(tracks_final) <- 1:nrow(tracks_final)
 # Ręczne obsłużenie wyjątku(jednym z akordów był "(f#m)")
 tracks_final$chords[[323]][88] <- "F#m"
 tracks_and_lyrics <- add_lyrics(tracks_final)
-full_data <- add_chords_positions(tracks_and_lyrics)
+full_data <- add_chords_data(tracks_and_lyrics)
 ```
 
 ```{r}
@@ -409,11 +410,6 @@ full_data <- readRDS('Lic_dane_pelne')
 comments <- grepl("Commentary", full_data$track_name)
 full_data <- full_data[!comments, ]
 saveRDS(full_data, file = "Lic_dane_pelne")
-d_chords <- full_data %>%
-  filter(!is.na(chords)) %>%
-  count(artist_name) %>%
-  filter(n > 1)
-full_chords <- full_data %>% filter(artist_name %in% d_chords$artist_name) %>% filter(!is.na(chords))
 
 full_clear <- as.data.frame(full_clear)
 plot(density(full_data$energy), main = "Gęstość Energiczności", xlab = "Energiczność", ylab = "Gęstość prawdopodobieństwa")
@@ -424,6 +420,13 @@ boxplot(full_data$instrumentalness, col = "orange", outline = T, horizontal = T,
 plot(ecdf(full_data$instrumentalness), main ="dytrybuanta intstrumentalness", xlab = "Instrumentalness", ylab = "prawdopodobieństwo P(X<x)")
 
 ggplot(full_data) + geom_boxplot(aes(artist_name, speechiness), fill = "orange") + coord_flip() + labs(title = "Boxplot udziału mowy w piosenkach z podziałem na artystów") +  xlab("Artysta") + ylab("Udział mowy")
+
+
+hist_data <- full_data %>% mutate(duration_ms = duration_ms/1000)
+hist_gathered <- gather(full_data[,15:24], var, value)
+
+max()
+ggplot(hist_gathered, aes(value, fill = var)) + geom_histogram(bins = 50)
 ```
 
 ```{r}
@@ -519,13 +522,7 @@ plot_ly(
 # saveRDS(tracks, file = "Lic_dane")
 # saveRDS(full_data, file = "Lic_dane_pelne")
 # table(unlist(data_chords$chords))
-test <- rep(2, 10)
 
 
-test <- data.frame(a1= c(rnorm(20, 12, 3)), a2 =c(rep(2, 5), rep(3,5), rep(5, 5), rep(7, 5)))
-test %>% count(a2, a1)
-test_v <- vector(mode = "character")
-
-test_v <- append(test_v, c("a", "b", "f"))
 
 ```
