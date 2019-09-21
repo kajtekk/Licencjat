@@ -284,11 +284,11 @@ take_highest_count <- function(x) {
 }
 
 get_dists_chords <- function(dane, metoda){
-  new_matrix<-matrix(nrow = length(dane), ncol = length(dane))
-  for (n in 1:length(dane)){
+  new_matrix<-matrix(nrow = nrow(dane), ncol = nrow(dane))
+  for (n in 1:nrow(dane)){
     progression_sep_1 <- do.call("paste", c(dane$chords_positions[[n]][,c(2,3)], sep = ""))
     progression_tghr_1 <- paste0(progression_sep_1,collapse =  " ")
-    for(m in 1:length(dane)) {
+    for(m in 1:nrow(dane)) {
       progression_sep_2 <- do.call("paste", c(dane$chords_positions[[m]][,c(2,3)], sep = ""))
       progression_tghr_2 <- paste0(progression_sep_2,collapse =  " ")
       dist <- stringdist(progression_tghr_1, progression_tghr_2,method = metoda)
@@ -469,14 +469,16 @@ ggplot(head(total_count, n = 15), aes(x = reorder(grupy, n), y = n, fill = grupy
 
 dists_chord <- get_dists_chords(full_chords, "cosine")
 plot.sociomatrix(dists_chord,drawlab = F)
-max(song_dist)
+
 dists_v <- vector(mode = "double")
 for (i in 1:50) {
   for (j in (i+1):51) {
     dists_v <- append(dists_v, dists_chord[i, j])
   }
 }
+max(dists_v)
 
+dists_chord[49, 36]
 ```
 ```{r}
 # Analiza tekstów
