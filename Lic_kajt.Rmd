@@ -334,7 +334,10 @@ get_speech_part <- function(dane, speech_part) {
   }
   return(new_df)
 }
+
+
 ```
+
 
 ```{r}
 # artists_1 <- c("Sam Smith", "Vance Joy", "Sia", "Aloe Blacc")
@@ -388,6 +391,7 @@ song_freq <- ggplot(bar_data,aes(x= reorder(artist_name,n), n, fill = artist_nam
 song_freq
 
 full_data$loudness <- -full_clear$loudness
+
 descriptive_stats <- function(variable){
   opisowe <-  full_data %>% summarise(srednia= mean(variable), mediana = median(variable),
                                    var = var(variable), odchylenie_st = sd(variable),
@@ -477,11 +481,15 @@ for (i in 1:50) {
   }
 }
 max(dists_v)
+min(dists_v)
+which(as.matrix(dists_chord) == min(dists_v), arr.ind = TRUE)
 
-dists_chord[49, 36]
 ```
 ```{r}
 # Analiza tekstów
+
+readRDS("Lic_dane_pelne")
+
 lyrics_na <- full_data %>%
   filter(!is.na(lyrics))
 
@@ -518,17 +526,26 @@ wordcloud(cloudFrame$word,cloudFrame$freq,colors = c("darkred", "darkgreen", "bl
           max.words = 100)
 
 all_words <- get_all_words(only_lyrics)
-
-all_word_artist <- cbind(all_words, lyrics_complete$artist_name, lyrics_complete$album_release_year)
-names(all_word_artist) <- c("lemma", "artist", "year")
+all_word_artist <- cbind(all_words, lyrics_complete$track_name, lyrics_complete$album_release_year)
+names(all_word_artist) <- c("lemma", "track", "year")
 words_1 <- all_word_artist %>% arrange(year)
 song_dist <- get_dists_lyrics(words_1$lemma, "cosine")
 
 plot_ly(
-  x = words_1$artist, y = words_1$artist,
+  x = words_1$track, y = words_1$track,
   z = song_dist, type = "heatmap"
 )
 
+dists_v <- vector(mode = "double")
+for (i in 1:378) {
+  for (j in (i+1):379) {
+    dists_v <- append(dists_v, song_dist[i, j])
+  }
+}
+indexs <- which(as.matrix(song_dist) == max(dists_v), arr.ind = TRUE)
+indexs_df <- as.data.frame(indexs)
+indexs_df %>% filter(row != col)
+max(dists_v)
 ```
 
 ```{r}
